@@ -1,6 +1,7 @@
-ARG BASE_IMAGE="kasmweb/desktop:1.15.0-rolling"
+ARG BASE_IMAGE="docker.io/kasmweb/ubuntu-noble-desktop:develop"
 FROM $BASE_IMAGE
 
+ARG pyver=3.12
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -14,7 +15,7 @@ RUN apt-get update \
     mtr \
     net-tools \
     openssh-server \
-    python3.9-full \
+    python${pyver}-full \
     software-properties-common \
     tmux \
     traceroute \
@@ -24,12 +25,11 @@ RUN apt-get update \
     xfonts-terminus-dos \
     xfonts-terminus-oblique \
     zstd \
- && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2 \
+ && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${pyver} 2 \
  && update-alternatives --install /usr/bin/python python /usr/bin/python3 2 \
  && for repo in \
     git-core/ppa \
     inkscape.dev/stable \
-    jonathonf/vim \
     mozillateam/ppa \
     phoerious/keepassxc \
     ;do add-apt-repository -ny "ppa:${repo}";done \
@@ -40,8 +40,18 @@ RUN apt-get update \
     inkscape \
     keepassxc \
  && rm -rf /var/lib/apt/lists/*
+# XXX: following repository does not work for this Ubuntu version:    jonathonf/vim \
 
-RUN wget -O get-pip.py https://bootstrap.pypa.io/get-pip.py \
+ENV \
+    PIP_DISABLE_PIP_VERSION_CHECK="yes" \
+    PIP_NO_CACHE_DIR="no" \
+    PIP_NO_WARN_SCRIPT_LOCATION="no" \
+    PIP_NO_WARN_SCRIPT_LOCATION="no" \
+    PIP_PROGRESS_BAR="off" \
+    PIP_ROOT_USER_ACTION="ignore" \
+    PIP_UPGRADE_STRATEGY="eager"
+
+RUN wget -qO get-pip.py https://bootstrap.pypa.io/get-pip.py \
  && python3 get-pip.py --break-system-packages \
  && python3 -m pip install --break-system-packages \
     PyYAML \
