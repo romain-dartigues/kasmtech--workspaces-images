@@ -1,9 +1,62 @@
 ARG BASE_IMAGE="docker.io/kasmweb/ubuntu-noble-desktop:develop"
 FROM $BASE_IMAGE
 
-ARG pyver=3.12
 USER root
-RUN apt-get update \
+
+# cleanup
+RUN apt update \
+ && apt purge -y \
+    bluez\* \
+    code \
+    cups\* \
+    evolution\* \
+    firefox \
+    gamepadtool \
+    gnome-bluetooth\* \
+    idle-python\* \
+    joystick \
+    jstest-gtk \
+    nextcloud\* \
+    pocketsphinx\* \
+    remmina\* \
+    sane\* \
+    signal-desktop \
+    slack-desktop \
+    sublime-text \
+    thunderbird \
+    vlc\* \
+    whoopsie\* \
+    xul-ext-ubufox \
+    zoom \
+ && dpkg -l | awk '/language-pack/ && !/language-pack-en/{print $2}' | xargs -r apt purge -y \
+ && apt autoremove -y \
+ && apt install -y \
+    localepurge \
+ && >/etc/default/locale printf '%s\n' \
+    LANG=C.UTF-8 \
+    LC_ADDRESS=fr_FR.utf8 \
+    LC_MONETARY=fr_FR.utf8 \
+    LC_NAME=fr_FR.utf8 \
+    LC_PAPER=fr_FR.utf8 \
+    LC_TIME=en_DK.utf8 \
+ && . /etc/default/locale \
+ && locales=$(sed -n 's/.*=//p' /etc/default/locale | sort -u) \
+ && sed 's/^USE_DPKG/#&/' -i /etc/locale.nopurge \
+ && sed -r '/^#.*deleted/,${/^([^#]|$)/d}' -i /etc/locale.nopurge \
+ && printf '%s\n' $locales >>/etc/locale.nopurge \
+ && localepurge -v \
+ && locale-gen --purge $locales \
+ && rm -fr \
+    /opt/Signal \
+    /opt/Telegram \
+    /opt/onlyoffice \
+    /opt/sublime_text \
+    /opt/zoom \
+    /var/lib/apt/lists/*
+
+RUN sed -i 's/^path-exclude.*man.*/#&/' /etc/dpkg/dpkg.cfg.d/excludes \
+ && apt-get update \
+ && pyver=$(apt-cache search 'python3\..*-full' | sed -r 's/python([^[:space:]]*)-full.*/\1/' | sort -Vr | head -1) \
  && apt-get install -y --no-install-recommends \
     bash-completion \
     binutils \
@@ -12,6 +65,9 @@ RUN apt-get update \
     fonts-terminus-otb \
     gnupg2 \
     iputils-ping \
+    lynx \
+    man \
+    manpages \
     mtr \
     net-tools \
     openssh-server \
@@ -25,6 +81,7 @@ RUN apt-get update \
     xfonts-terminus-dos \
     xfonts-terminus-oblique \
     zstd \
+ && install -v /usr/bin/man.REAL /usr/bin/man \
  && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${pyver} 2 \
  && update-alternatives --install /usr/bin/python python /usr/bin/python3 2 \
  && for repo in \
@@ -36,9 +93,11 @@ RUN apt-get update \
  && apt-get update \
  && apt-get upgrade -y \
  && apt-get install -y \
+    alacritty \
     git \
     inkscape \
     keepassxc \
+    mpv \
  && rm -rf /var/lib/apt/lists/*
 # XXX: following repository does not work for this Ubuntu version:    jonathonf/vim \
 
@@ -65,6 +124,8 @@ RUN temp=$(mktemp -d) \
     https://github.com/sharkdp/bat/releases/download/v0.24.0/bat-musl_0.24.0_amd64.deb \
     https://github.com/sharkdp/fd/releases/download/v10.1.0/fd-musl_10.1.0_amd64.deb \
  && dpkg -i *.deb \
- && rm -rf "$temp"
+ && rm -rf "$temp" \
+ && wget -nv -O- https://github.com/jqlang/jq/releases/latest/download/jq-linux-amd64 |\
+    install -v /dev/stdin /usr/bin/jq
 
 EXPOSE 22

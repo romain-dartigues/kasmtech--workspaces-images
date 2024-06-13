@@ -1,6 +1,7 @@
 
 all:
 	docker build -t test .
+	docker build --build-arg FROM=test:latest -t test:flat - < Dockerfile-flatten
 
 dockerfile-kasm-desktop-noble: dockerfile-kasm-desktop
 	sed "s#^FROM .*#FROM docker.io/kasmweb/ubuntu-noble-desktop:develop#" $< > $@
@@ -13,5 +14,3 @@ desktop: dockerfile-kasm-desktop-noble Dockerfile
 #
 #docker.io/kasmweb/ubuntu-noble-desktop:develop
 #kasmweb/desktop:1.15.0-rolling
-
-

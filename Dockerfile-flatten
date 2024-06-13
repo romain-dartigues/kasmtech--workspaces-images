@@ -1,0 +1,4 @@
+ARG FROM
+FROM $FROM as initial
+FROM scratch
+COPY --from=initial / /
